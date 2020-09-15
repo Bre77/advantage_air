@@ -1,2 +1,4 @@
 test.py
 .vscode
+*.egg-info
+build/
