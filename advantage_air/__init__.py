@@ -21,49 +21,48 @@ class advantage_air:
         self.ip = ip
         self.port = port
         self.retry = retry
-        self.ready = True
         self.queue = {}
+        self.lock = asyncio.Lock()
 
-    async def async_get(self):
+    async def async_get(self, retry=None):
+        retry = retry or self.retry
         data = {}
         count = 0
-        while count < self.retry:
+        while count < retry:
+            count += 1
             try:
                 async with request(
                     "GET", f"http://{self.ip}:{self.port}/getSystemData", timeout=ClientTimeout(total=4)
                 ) as resp:
                     assert resp.status == 200
                     data = await resp.json(content_type=None)
-            except ConnectionResetError:
+            except (ClientError, asyncio.TimeoutError):
                 pass
-            except ServerConnectionError:
-                pass
+            except SyntaxError:
+                break
 
             if "aircons" in data:
                 return data
-
-            count += 1
+            
             await asyncio.sleep(1)
-        raise Exception(f"Connection failed {MYAIR_RETRY} times")
+        raise ClientError(f"No valid response after {count} failed attempt{['','s'][count>1]}")
 
     async def async_change(self, change):
         self.queue = update(self.queue, change)
-        if self.ready:
-            self.ready = False
-            while self.queue:
-                payload = self.queue
-                self.queue = {}
-                async with request(
-                    "GET",
-                    f"http://{self.ip}:{self.port}/setAircon",
-                    params={"json": json.dumps(payload)},
-                    timeout=ClientTimeout(total=4),
-                ) as resp:
-                    data = await resp.json(content_type=None)
-                if data["ack"] == False:
-                    self.ready = True
-                    raise Exception(data["reason"])
-            self.ready = True
+        if not self.lock.locked():
+            async with self.lock:
+                while self.queue:
+                    payload = self.queue
+                    self.queue = {}
+                    async with request(
+                        "GET",
+                        f"http://{self.ip}:{self.port}/setAircon",
+                        params={"json": json.dumps(payload)},
+                        timeout=ClientTimeout(total=4),
+                    ) as resp:
+                        data = await resp.json(content_type=None)
+                    if data["ack"] == False:
+                        raise Exception(data["reason"])
         return len(self.queue)
 
     async def queue(self,change):
