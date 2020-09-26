@@ -56,7 +56,7 @@ class advantage_air:
                 break
 
             await asyncio.sleep(1)
-        raise ApiError(f"No valid response after {count} failed attempt{['','s'][count>1]}. Last error was {error}")
+        raise ApiError(f"No valid response after {count} failed attempt{['','s'][count>1]}. Last error was: {error}")
 
     async def async_change(self, change):
         """Merge changes with queue and send when possible, returning True when done"""
