@@ -17,7 +17,7 @@ class ApiError(Exception):
     """AdvantageAir Error"""
 
     def __init__(self,message):
-        super().__init__(self.message)
+        super().__init__(message)
 
 
 class advantage_air:
