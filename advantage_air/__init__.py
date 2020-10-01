@@ -2,7 +2,7 @@ import json
 import asyncio
 import collections.abc
 from datetime import timedelta
-from aiohttp import request, ClientError, ClientTimeout
+from aiohttp import request, ClientError, ClientTimeout, ClientConnectorError
 
 
 def update(d, u):
@@ -45,14 +45,15 @@ class advantage_air:
                     data = await resp.json(content_type=None)
                     if "aircons" in data:
                         return data
-            except ClientError as err:
+            except (ClientError, ClientConnectorError) as err:
                 error = err
-                pass
-            except asyncio.TimeoutError as err:
+            except asyncio.TimeoutError:
                 error = "Connection timed out."
-                pass
+            except AssertionError:
+                error = "Response status not 200."
+                break
             except SyntaxError as err:
-                error = err
+                error = "Invalid response"
                 break
 
             await asyncio.sleep(1)
@@ -67,14 +68,23 @@ class advantage_air:
             while self.changes:
                 payload = self.changes
                 self.changes = {}
-                async with request(
-                    "GET",
-                    f"http://{self.ip}:{self.port}/setAircon",
-                    params={"json": json.dumps(payload)},
-                    timeout=ClientTimeout(total=4),
-                ) as resp:
-                    data = await resp.json(content_type=None)
-                if data["ack"] == False:
-                    raise Exception(data["reason"])
+                try:
+                    async with request(
+                        "GET",
+                        f"http://{self.ip}:{self.port}/setAircon",
+                        params={"json": json.dumps(payload)},
+                        timeout=ClientTimeout(total=4),
+                    ) as resp:
+                        data = await resp.json(content_type=None)
+                    if data["ack"] == False:
+                        raise ApiError(data["reason"])
+                except ClientError as err:
+                    raise ApiError(err)
+                except asyncio.TimeoutError:
+                    raise ApiError("Connection timed out.")
+                except AssertionError:
+                    raise ApiError("Response status not 200.")
+                except SyntaxError as err:
+                    raise ApiError("Invalid response")
         return True
 
