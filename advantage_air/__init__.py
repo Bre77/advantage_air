@@ -1,8 +1,8 @@
 import json
 import asyncio
+import aiohttp
 import collections.abc
 from datetime import timedelta
-from aiohttp import request, ClientError, ClientTimeout, ClientConnectorError
 
 
 def update(d, u):
@@ -13,22 +13,27 @@ def update(d, u):
             d[k] = v
     return d
 
+
 class ApiError(Exception):
     """AdvantageAir Error"""
 
-    def __init__(self,message):
+    def __init__(self, message):
         super().__init__(message)
 
 
 class advantage_air:
     """AdvantageAir Connection"""
 
-    def __init__(self, ip, port=2025, retry=5):
+    def __init__(self, ip, port=2025, session=None, retry=5):
+
         self.ip = ip
         self.port = port
+        self.session = session
         self.retry = retry
         self.changes = {}
         self.lock = asyncio.Lock()
+        if session is None:
+            session = aiohttp.ClientSession()
 
     async def async_get(self, retry=None):
         retry = retry or self.retry
@@ -38,14 +43,15 @@ class advantage_air:
         while count < retry:
             count += 1
             try:
-                async with request(
-                    "GET", f"http://{self.ip}:{self.port}/getSystemData", timeout=ClientTimeout(total=4)
+                async with self.session.get(
+                    f"http://{self.ip}:{self.port}/getSystemData",
+                    timeout=aiohttp.ClientTimeout(total=4),
                 ) as resp:
                     assert resp.status == 200
                     data = await resp.json(content_type=None)
                     if "aircons" in data:
                         return data
-            except (ClientError, ClientConnectorError) as err:
+            except (aiohttp.ClientError, aiohttp.ClientConnectorError) as err:
                 error = err
             except asyncio.TimeoutError:
                 error = "Connection timed out."
@@ -57,7 +63,9 @@ class advantage_air:
                 break
 
             await asyncio.sleep(1)
-        raise ApiError(f"No valid response after {count} failed attempt{['','s'][count>1]}. Last error was: {error}")
+        raise ApiError(
+            f"No valid response after {count} failed attempt{['','s'][count>1]}. Last error was: {error}"
+        )
 
     async def async_change(self, change):
         """Merge changes with queue and send when possible, returning True when done"""
@@ -69,16 +77,15 @@ class advantage_air:
                 payload = self.changes
                 self.changes = {}
                 try:
-                    async with request(
-                        "GET",
+                    async with self.session.get(
                         f"http://{self.ip}:{self.port}/setAircon",
                         params={"json": json.dumps(payload)},
-                        timeout=ClientTimeout(total=4),
+                        timeout=aiohttp.ClientTimeout(total=4),
                     ) as resp:
                         data = await resp.json(content_type=None)
                     if data["ack"] == False:
                         raise ApiError(data["reason"])
-                except ClientError as err:
+                except aiohttp.ClientError as err:
                     raise ApiError(err)
                 except asyncio.TimeoutError:
                     raise ApiError("Connection timed out.")
@@ -87,4 +94,3 @@ class advantage_air:
                 except SyntaxError as err:
                     raise ApiError("Invalid response")
         return True
-

@@ -4,8 +4,8 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="advantage_air",  # Replace with your own username
-    version="0.1.3",
+    name="advantage_air",
+    version="0.2.1",
     author="Brett Adams",
     author_email="brett@ba.id.au",
     description="API helper for Advantage Air's MyAir and e-zone API",
