@@ -51,7 +51,7 @@ class advantage_air:
                     data = await resp.json(content_type=None)
                     if "aircons" in data:
                         return data
-            except (aiohttp.ClientError, aiohttp.ClientConnectorError) as err:
+            except (aiohttp.ClientError, aiohttp.ClientConnectorError, aiohttp.client_exceptions.ServerDisconnectedError, ConnectionResetError) as err:
                 error = err
             except asyncio.TimeoutError:
                 error = "Connection timed out."
@@ -75,7 +75,6 @@ class advantage_air:
         async with self.lock:
             while self.changes:
                 payload = self.changes
-                self.changes = {}
                 try:
                     async with self.session.get(
                         f"http://{self.ip}:{self.port}/setAircon",
@@ -85,6 +84,9 @@ class advantage_air:
                         data = await resp.json(content_type=None)
                     if data["ack"] == False:
                         raise ApiError(data["reason"])
+                except (aiohttp.client_exceptions.ServerDisconnectedError, ConnectionResetError) as err:
+                    # Recoverable error, try again in a second
+                    await asyncio.sleep(1)
                 except aiohttp.ClientError as err:
                     raise ApiError(err)
                 except asyncio.TimeoutError:
@@ -93,4 +95,7 @@ class advantage_air:
                     raise ApiError("Response status not 200.")
                 except SyntaxError as err:
                     raise ApiError("Invalid response")
+                else:
+                    self.changes = {}
+                
         return True
