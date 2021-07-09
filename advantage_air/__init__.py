@@ -74,7 +74,11 @@ class advantage_air:
             return False
         async with self.lock:
             while self.changes:
+                # Allow any addition changes from the event loop to be collected
+                await asyncio.sleep(0)
+                # Collect all changes
                 payload = self.changes
+                self.changes = {}
                 try:
                     async with self.session.get(
                         f"http://{self.ip}:{self.port}/setAircon",
@@ -85,7 +89,8 @@ class advantage_air:
                     if data["ack"] == False:
                         raise ApiError(data["reason"])
                 except (aiohttp.client_exceptions.ServerDisconnectedError, ConnectionResetError) as err:
-                    # Recoverable error, try again in a second
+                    # Recoverable error, reinsert the changes and try again in a second
+                    self.changes = update(self.changes, payload)
                     await asyncio.sleep(1)
                 except aiohttp.ClientError as err:
                     raise ApiError(err)
@@ -95,7 +100,4 @@ class advantage_air:
                     raise ApiError("Response status not 200.")
                 except SyntaxError as err:
                     raise ApiError("Invalid response")
-                else:
-                    self.changes = {}
-                
         return True
