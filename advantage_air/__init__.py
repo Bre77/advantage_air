@@ -34,6 +34,7 @@ class advantage_air:
         self.lock = asyncio.Lock()
         if session is None:
             session = aiohttp.ClientSession()
+        self.data = {}
 
     async def async_get(self, retry=None):
         retry = retry or self.retry
@@ -50,6 +51,17 @@ class advantage_air:
                     assert resp.status == 200
                     data = await resp.json(content_type=None)
                     if "aircons" in data:
+                        self.data = data
+
+                        #MyAir5 fix
+                        if data["system"]["sysType"] == "MyAir5":
+                            for ac in data:
+                                try:
+                                    if data[ac]["info"]["fan"] == "autoAA":
+                                        data[ac]["info"]["fan"] = "auto"
+                                except KeyError:
+                                    pass
+
                         return data
             except (aiohttp.ClientError, aiohttp.ClientConnectorError, aiohttp.client_exceptions.ServerDisconnectedError, ConnectionResetError) as err:
                 error = err
@@ -69,6 +81,16 @@ class advantage_air:
 
     async def async_change(self, change):
         """Merge changes with queue and send when possible, returning True when done"""
+        
+        #MyAir5 fix
+        if self.data and self.data["system"]["sysType"] == "MyAir5":
+            for ac in change:
+                try:
+                    if change[ac]["info"]["fan"] == "auto":
+                        change[ac]["info"]["fan"] = "autoAA"
+                except KeyError:
+                    pass
+
         self.changes = update(self.changes, change)
         if self.lock.locked():
             return False
