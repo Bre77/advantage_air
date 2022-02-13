@@ -50,9 +50,9 @@ class advantage_air:
                         self.data = data
 
                         #aaAuto fix
-                        for ac in data:
-                            if data[ac]["info"].get("aaAutoFanModeEnabled") and data[ac]["info"].get("fan") == "autoAA":
-                                data[ac]["info"]["fan"] = "auto"
+                        for ac in data['aircons']:
+                            if data['aircons'][ac]["info"].get("aaAutoFanModeEnabled") and data[ac]["info"].get("fan") == "autoAA":
+                                data['aircons'][ac]["info"]["fan"] = "auto"
 
                         return data
             except (aiohttp.ClientError, aiohttp.ClientConnectorError, aiohttp.client_exceptions.ServerDisconnectedError, ConnectionResetError) as err:
@@ -73,11 +73,10 @@ class advantage_air:
 
     async def async_change(self, change):
         """Merge changes with queue and send when possible, returning True when done"""
-        
         #aaAuto fix
         for ac in change:
             try:
-                if self.data[ac]["info"].get("aaAutoFanModeEnabled") and change[ac]["info"]["fan"] == "auto":
+                if self.data['aircons'][ac]["info"]["aaAutoFanModeEnabled"] and change[ac]["info"]["fan"] == "auto":
                     change[ac]["info"]["fan"] = "autoAA"
             except KeyError:
                 pass
