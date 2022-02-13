@@ -2,7 +2,6 @@ import json
 import asyncio
 import aiohttp
 import collections.abc
-from datetime import timedelta
 
 
 def update(d, u):
@@ -16,9 +15,6 @@ def update(d, u):
 
 class ApiError(Exception):
     """AdvantageAir Error"""
-
-    def __init__(self, message):
-        super().__init__(message)
 
 
 class advantage_air:
@@ -53,14 +49,10 @@ class advantage_air:
                     if "aircons" in data:
                         self.data = data
 
-                        #MyAir5 fix
-                        if data["system"]["sysType"] == "MyAir5":
-                            for ac in data:
-                                try:
-                                    if data[ac]["info"]["fan"] == "autoAA":
-                                        data[ac]["info"]["fan"] = "auto"
-                                except KeyError:
-                                    pass
+                        #aaAuto fix
+                        for ac in data:
+                            if data[ac]["info"].get("aaAutoFanModeEnabled") and data[ac]["info"].get("fan") == "autoAA":
+                                data[ac]["info"]["fan"] = "auto"
 
                         return data
             except (aiohttp.ClientError, aiohttp.ClientConnectorError, aiohttp.client_exceptions.ServerDisconnectedError, ConnectionResetError) as err:
@@ -82,14 +74,13 @@ class advantage_air:
     async def async_change(self, change):
         """Merge changes with queue and send when possible, returning True when done"""
         
-        #MyAir5 fix
-        if self.data and self.data["system"]["sysType"] == "MyAir5":
-            for ac in change:
-                try:
-                    if change[ac]["info"]["fan"] == "auto":
-                        change[ac]["info"]["fan"] = "autoAA"
-                except KeyError:
-                    pass
+        #aaAuto fix
+        for ac in change:
+            try:
+                if self.data[ac]["info"].get("aaAutoFanModeEnabled") and change[ac]["info"]["fan"] == "auto":
+                    change[ac]["info"]["fan"] = "autoAA"
+            except KeyError:
+                pass
 
         self.changes = update(self.changes, change)
         if self.lock.locked():
