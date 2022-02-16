@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="advantage_air",
-    version="0.3.0",
+    version="0.3.1",
     author="Brett Adams",
     author_email="brett@ba.id.au",
     description="API helper for Advantage Air's MyAir and e-zone API",
