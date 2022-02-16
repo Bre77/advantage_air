@@ -51,7 +51,7 @@ class advantage_air:
 
                         #aaAuto fix
                         for ac in data['aircons']:
-                            if data['aircons'][ac]["info"].get("aaAutoFanModeEnabled") and data[ac]["info"].get("fan") == "autoAA":
+                            if data['aircons'][ac]["info"].get("aaAutoFanModeEnabled") and data['aircons'][ac]["info"].get("fan") == "autoAA":
                                 data['aircons'][ac]["info"]["fan"] = "auto"
 
                         return data
