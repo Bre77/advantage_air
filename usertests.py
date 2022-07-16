@@ -20,10 +20,10 @@ async def main():
         # Set to auto
         for ac in data['aircons']:
             data['aircons']
-        print(ac, "change", await aa.async_change({
+        print(ac, "set", await aa.aircon.async_set({
             ac: {
                 'info': {
-                    'fan': 'auto'
+                    'fan': 'low'
                 }
             }
         }))
