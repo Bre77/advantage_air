@@ -31,9 +31,8 @@ class advantage_air:
         self.retry = retry
         
         self.aircon = self.advantage_air_endpoint(ip,port,session,retry,"setAircon")
-        self.lights = self.advantage_air_endpoint(ip,port,session,retry,"setLights")
-        self.things = self.advantage_air_endpoint(ip,port,session,retry,"setThings")
-        self.scenes = self.advantage_air_endpoint(ip,port,session,retry,"setScenes")
+        self.lights = self.advantage_air_endpoint(ip,port,session,retry,"setLight")
+        self.things = self.advantage_air_endpoint(ip,port,session,retry,"setThing")
 
     async def async_get(self, retry=None):
         retry = retry or self.retry
