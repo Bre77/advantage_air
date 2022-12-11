@@ -29,10 +29,10 @@ class advantage_air:
         self.port = port
         self.session = session
         self.retry = retry
-        
-        self.aircon = self.advantage_air_endpoint(ip,port,session,retry,"setAircon")
-        self.lights = self.advantage_air_endpoint(ip,port,session,retry,"setLights")
-        self.things = self.advantage_air_endpoint(ip,port,session,retry,"setThings")
+
+        self.aircon = self.advantage_air_endpoint(ip, port, session, retry, "setAircon")
+        self.lights = self.advantage_air_endpoint(ip, port, session, retry, "setLights")
+        self.things = self.advantage_air_endpoint(ip, port, session, retry, "setThings")
 
     async def async_get(self, retry=None):
         retry = retry or self.retry
@@ -50,7 +50,12 @@ class advantage_air:
                     data = await resp.json(content_type=None)
                     if "aircons" in data:
                         return data
-            except (aiohttp.ClientError, aiohttp.ClientConnectorError, aiohttp.client_exceptions.ServerDisconnectedError, ConnectionResetError) as err:
+            except (
+                aiohttp.ClientError,
+                aiohttp.ClientConnectorError,
+                aiohttp.client_exceptions.ServerDisconnectedError,
+                ConnectionResetError,
+            ) as err:
                 error = err
             except asyncio.TimeoutError:
                 error = "Connection timed out."
@@ -67,7 +72,6 @@ class advantage_air:
         )
 
     class advantage_air_endpoint:
-        
         def __init__(self, ip, port, session, retry, endpoint):
             self.ip = ip
             self.port = port
@@ -99,7 +103,10 @@ class advantage_air:
                             data = await resp.json(content_type=None)
                         if data["ack"] == False:
                             raise ApiError(data["reason"])
-                    except (aiohttp.client_exceptions.ServerDisconnectedError, ConnectionResetError) as err:
+                    except (
+                        aiohttp.client_exceptions.ServerDisconnectedError,
+                        ConnectionResetError,
+                    ) as err:
                         # Recoverable error, reinsert the changes and try again in a second
                         self.changes = update(self.changes, payload)
                         await asyncio.sleep(1)
