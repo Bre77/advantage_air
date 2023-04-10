@@ -3,8 +3,8 @@ import asyncio
 import aiohttp
 import collections.abc
 
-ON = "ON"
-OFF = "OFF"
+ON = "on"
+OFF = "off"
 
 def update(d, u):
     for k, v in u.items():
