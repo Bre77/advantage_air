@@ -3,6 +3,8 @@ import asyncio
 import aiohttp
 import collections.abc
 
+ON = ON
+OFF = OFF
 
 def update(d, u):
     for k, v in u.items():
@@ -21,7 +23,6 @@ class advantage_air:
     """AdvantageAir Connection"""
 
     def __init__(self, ip, port=2025, session=None, retry=5):
-
         if session is None:
             session = aiohttp.ClientSession()
 
@@ -30,9 +31,9 @@ class advantage_air:
         self.session = session
         self.retry = retry
 
-        self.aircon = self.advantage_air_endpoint(ip, port, session, retry, "setAircon")
-        self.lights = self.advantage_air_endpoint(ip, port, session, retry, "setLights")
-        self.things = self.advantage_air_endpoint(ip, port, session, retry, "setThings")
+        self.aircon = self._aircon(ip, port, session, retry)
+        self.lights = self._lights(ip, port, session, retry)
+        self.things = self._things(ip, port, session, retry)
 
     async def async_get(self, retry=None):
         retry = retry or self.retry
@@ -71,17 +72,16 @@ class advantage_air:
             f"No valid response after {count} failed attempt{['','s'][count>1]}. Last error was: {error}"
         )
 
-    class advantage_air_endpoint:
-        def __init__(self, ip, port, session, retry, endpoint):
+    class _endpoint:
+        def __init__(self, ip, port, session, retry):
             self.ip = ip
             self.port = port
             self.session = session
             self.retry = retry
-            self.endpoint = endpoint
             self.changes = {}
             self.lock = asyncio.Lock()
 
-        async def async_set(self, change):
+        async def async_update(self, change):
             """Merge changes with queue and send when possible, returning True when done"""
 
             self.changes = update(self.changes, change)
@@ -119,3 +119,47 @@ class advantage_air:
                     except SyntaxError as err:
                         raise ApiError("Invalid response")
             return True
+
+    class _aircon(_endpoint):
+        """Aircon endpoint"""
+
+        endpoint = "setAircon"
+
+        def async_update_ac(self, ac: str, body: dict) -> bool:
+            """Update an aircon"""
+            return self.async_update({ac: {"info": body}})
+
+        def async_update_zone(self, ac: str, zone: str, body: dict) -> bool:
+            """Update a zone"""
+            return self.async_update({ac: {"zones": {zone: {body}}}})
+
+    class _lights(_endpoint):
+        """Lights endpoint"""
+
+        endpoint = "setLights"
+
+        def async_update_state(self, id: str, state: str|bool) -> bool:
+            """Update a lights state"""
+            if state == True:
+                state = ON
+            elif state == False:
+                state = OFF
+            return self.async_update({id: {"id": id, "state": state}})
+
+        def async_update_value(self, id: str, value: int) -> bool:
+            """Update a lights state and value"""
+            return self.async_update({id: {"id": id, "state": (ON if value > 0 else OFF), "value": value}})
+
+    class _things(_endpoint):
+        """Things endpoint"""
+
+        endpoint = "setThings"
+
+        def async_update_value(self, id: str, value: int|bool) -> bool:
+            """Update a things state and value"""
+            if value == True:
+                value = 100
+            elif value == False:
+                value = 0
+                
+            return self.async_update({id: {"id": id, "value": value}})
