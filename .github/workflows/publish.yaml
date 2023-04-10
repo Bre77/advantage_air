@@ -1,32 +1,5 @@
-name: Publish to PyPI
-on: push
-
-jobs:
-  build-n-publish:
-    name: Build and publish Python distributions to PyPI
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@master
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.9
-      - name: Install pypa/build
-        run: >-
-          python -m
-          pip install
-          build
-          --user
-      - name: Build a binary wheel and a source tarball
-        run: >-
-          python -m
-          build
-          --sdist
-          --wheel
-          --outdir dist/
-          .
-      - name: Publish distribution to PyPI
-        uses: pypa/gh-action-pypi-publish@master
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+- name: pypi-publish
+  if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+  uses: pypa/gh-action-pypi-publish@v1.8.5
+  with:
+    password: ${{ secrets.PYPI_API_TOKEN }}
