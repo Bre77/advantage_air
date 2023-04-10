@@ -3,8 +3,8 @@ import asyncio
 import aiohttp
 import collections.abc
 
-ON = ON
-OFF = OFF
+ON = "ON"
+OFF = "OFF"
 
 def update(d, u):
     for k, v in u.items():
@@ -22,7 +22,7 @@ class ApiError(Exception):
 class advantage_air:
     """AdvantageAir Connection"""
 
-    def __init__(self, ip, port=2025, session=None, retry=5):
+    def __init__(self, ip: str, port: int=2025, session: aiohttp.ClientSession=None, retry: int=5):
         if session is None:
             session = aiohttp.ClientSession()
 
@@ -35,7 +35,7 @@ class advantage_air:
         self.lights = self._lights(ip, port, session, retry)
         self.things = self._things(ip, port, session, retry)
 
-    async def async_get(self, retry=None):
+    async def async_get(self, retry:int =None):
         retry = retry or self.retry
         data = {}
         count = 0
@@ -73,7 +73,7 @@ class advantage_air:
         )
 
     class _endpoint:
-        def __init__(self, ip, port, session, retry):
+        def __init__(self, ip, port, session, retry) -> None:
             self.ip = ip
             self.port = port
             self.session = session
@@ -81,7 +81,7 @@ class advantage_air:
             self.changes = {}
             self.lock = asyncio.Lock()
 
-        async def async_update(self, change):
+        async def async_update(self, change: dict[str, any]) -> bool:
             """Merge changes with queue and send when possible, returning True when done"""
 
             self.changes = update(self.changes, change)
