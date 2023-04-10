@@ -125,41 +125,41 @@ class advantage_air:
 
         endpoint = "setAircon"
 
-        def async_update_ac(self, ac: str, body: dict) -> bool:
+        async def async_update_ac(self, ac: str, body: dict) -> bool:
             """Update an aircon"""
-            return self.async_update({ac: {"info": body}})
+            return await self.async_update({ac: {"info": body}})
 
-        def async_update_zone(self, ac: str, zone: str, body: dict) -> bool:
+        async def async_update_zone(self, ac: str, zone: str, body: dict) -> bool:
             """Update a zone"""
-            return self.async_update({ac: {"zones": {zone: {body}}}})
+            return await self.async_update({ac: {"zones": {zone: body}}})
 
     class _lights(_endpoint):
         """Lights endpoint"""
 
         endpoint = "setLights"
 
-        def async_update_state(self, id: str, state: str|bool) -> bool:
+        async def async_update_state(self, id: str, state: str|bool) -> bool:
             """Update a lights state"""
             if state == True:
                 state = ON
             elif state == False:
                 state = OFF
-            return self.async_update({id: {"id": id, "state": state}})
+            return await self.async_update({id: {"id": id, "state": state}})
 
-        def async_update_value(self, id: str, value: int) -> bool:
+        async def async_update_value(self, id: str, value: int) -> bool:
             """Update a lights state and value"""
-            return self.async_update({id: {"id": id, "state": (ON if value > 0 else OFF), "value": value}})
+            return await self.async_update({id: {"id": id, "state": (ON if value > 0 else OFF), "value": value}})
 
     class _things(_endpoint):
         """Things endpoint"""
 
         endpoint = "setThings"
 
-        def async_update_value(self, id: str, value: int|bool) -> bool:
+        async def async_update_value(self, id: str, value: int|bool) -> bool:
             """Update a things state and value"""
             if value == True:
                 value = 100
             elif value == False:
                 value = 0
                 
-            return self.async_update({id: {"id": id, "value": value}})
+            return await self.async_update({id: {"id": id, "value": value}})
